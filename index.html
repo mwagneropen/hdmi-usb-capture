@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HDMI Capture - Hybrid Engine</title>
+    <title>HDMI Capture - Anti-Ringing Smart Sharpen</title>
     <style>
         body {
             background-color: #000;
@@ -27,21 +27,21 @@
             justify-content: center;
         }
 
-        /* ENGINE 1: WebGL Canvas (High Quality, +1 Frame Latency) */
+        /* ENGINE 1: Smart WebGL */
         canvas {
             width: 100%;
             height: 100%;
-            display: none; /* Hidden by default */
+            display: none;
             image-rendering: pixelated; 
         }
 
-        /* ENGINE 2: Raw Video (Zero Latency) */
+        /* ENGINE 2: Native Video */
         video {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            display: block; /* Visible by default */
-            will-change: transform; /* Hardware Acceleration Hint */
+            display: block;
+            will-change: transform;
         }
 
         /* HUD Styles */
@@ -75,121 +75,51 @@
             transition: opacity 0.2s;
         }
         
-        .control-group.disabled {
-            opacity: 0.3;
-            pointer-events: none;
-        }
-
-        .control-group label {
-            color: #aaa;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-
-        input[type=range] {
-            width: 100%;
-            cursor: pointer;
-            height: 4px;
-            border-radius: 2px;
-            appearance: none;
-            background: #444;
-        }
-
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: white;
-            cursor: pointer;
-        }
+        .control-group.disabled { opacity: 0.3; pointer-events: none; }
+        .control-group label { color: #aaa; font-size: 10px; text-transform: uppercase; font-weight: 600; margin-bottom: 5px; }
+        
+        input[type=range] { width: 100%; cursor: pointer; height: 4px; border-radius: 2px; appearance: none; background: #444; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: white; cursor: pointer; }
 
         #vol { accent-color: #007bff; }
         #sharp { accent-color: #e056fd; } 
 
-        .btn-icon {
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s;
-        }
+        .btn-icon { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.2s; }
         .btn-icon:hover { background: rgba(255,255,255,0.1); }
 
-        /* Mode Toggle Button */
+        /* Mode Toggle */
         #modeToggle {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid #555;
-            color: #888;
-            padding: 0 12px;
-            height: 36px;
-            font-size: 10px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            line-height: 1.1;
-            width: 80px;
-            text-align: center;
-            transition: all 0.2s;
+            background: rgba(255,255,255,0.05); border: 1px solid #555; color: #888;
+            padding: 0 12px; height: 36px; font-size: 10px; font-weight: bold; border-radius: 8px;
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            line-height: 1.1; width: 80px; text-align: center; transition: all 0.2s;
         }
-
-        /* Active State (FSR ON) */
         #modeToggle.active {
-            background: rgba(111, 66, 193, 0.2); /* Purple Tint */
-            border: 1px solid #e056fd;
-            color: #e056fd;
+            background: rgba(111, 66, 193, 0.2); border: 1px solid #e056fd; color: #e056fd;
             box-shadow: 0 0 15px rgba(224, 86, 253, 0.2);
         }
 
         #startBtn {
-            position: absolute;
-            z-index: 50;
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 50px;
-            box-shadow: 0 0 30px rgba(40, 167, 69, 0.5);
-            cursor: pointer;
-            transition: transform 0.1s;
+            position: absolute; z-index: 50; background: #28a745; color: white; border: none;
+            padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 50px;
+            box-shadow: 0 0 30px rgba(40, 167, 69, 0.5); cursor: pointer; transition: transform 0.1s;
         }
         #startBtn:hover { transform: scale(1.05); }
 
         .divider { width: 1px; height: 30px; background: #444; }
-        
-        .engine-tag {
-            position: absolute;
-            top: 20px; right: 20px;
-            font-size: 10px; color: #555;
-            text-transform: uppercase;
-            pointer-events: none;
-        }
+        .engine-tag { position: absolute; top: 20px; right: 20px; font-size: 10px; color: #555; text-transform: uppercase; pointer-events: none; }
     </style>
 </head>
 <body>
 
     <div id="player-container">
-        <button id="startBtn">⚡ Start Hybrid Stream</button>
+        <button id="startBtn">⚡ Start Smart Stream</button>
         <div class="engine-tag" id="engineTag">Engine: Native Video (Zero Latency)</div>
 
-        <canvas id="glCanvas"></canvas> <video id="sourceVid" autoplay playsinline></video> <div class="hud-panel">
-            
+        <canvas id="glCanvas"></canvas>
+        <video id="sourceVid" autoplay playsinline></video>
+
+        <div class="hud-panel">
             <div class="control-group" style="width: 100px;">
                 <label id="volLabel">Volume 100%</label>
                 <input type="range" id="vol" min="0" max="1" step="0.01" value="1">
@@ -197,14 +127,11 @@
 
             <div class="divider"></div>
 
-            <button id="modeToggle">
-                <span>FSR UPSCALER</span>
-                <span style="font-size:9px">OFF</span>
-            </button>
+            <button id="modeToggle"><span>SMART SHARP</span><span style="font-size:9px">OFF</span></button>
 
             <div class="control-group disabled" id="sharpGroup">
                 <label style="color:#e056fd">Sharpness</label>
-                <input type="range" id="sharp" min="0" max="2.0" step="0.1" value="0.8">
+                <input type="range" id="sharp" min="0" max="3.0" step="0.1" value="1.0">
             </div>
 
             <div class="divider"></div>
@@ -233,6 +160,7 @@
             gl_Position = vec4(position, 0.0, 1.0);
         }
     </script>
+    
     <script id="fs" type="x-shader/x-fragment">
         precision mediump float;
         uniform sampler2D uImage;
@@ -246,44 +174,67 @@
             return (color - 0.5) * adjustment + 0.5;
         }
 
-        void main() {
-            vec3 color = texture2D(uImage, vUv).rgb;
+        // Helper to get luma (brightness)
+        float luma(vec3 color) {
+            return dot(color, vec3(0.299, 0.587, 0.114));
+        }
 
+        void main() {
+            // 1. Fetch Neighbors
+            vec3 m = texture2D(uImage, vUv).rgb;
+            
+            // Only calculate neighbors if sharpening is on
             if (uSharpness > 0.0) {
                 float x = 1.0 / uResolution.x;
                 float y = 1.0 / uResolution.y;
-                vec3 a = texture2D(uImage, vUv + vec2(0.0, -y)).rgb;
-                vec3 b = texture2D(uImage, vUv + vec2(0.0, y)).rgb;
-                vec3 c = texture2D(uImage, vUv + vec2(-x, 0.0)).rgb;
-                vec3 d = texture2D(uImage, vUv + vec2(x, 0.0)).rgb;
-                vec3 diff = color - (a + b + c + d) * 0.25;
-                color = color + diff * (uSharpness * 4.0);
-            }
+                
+                vec3 n = texture2D(uImage, vUv + vec2(0.0, -y)).rgb;
+                vec3 s = texture2D(uImage, vUv + vec2(0.0, y)).rgb;
+                vec3 e = texture2D(uImage, vUv + vec2(-x, 0.0)).rgb;
+                vec3 w = texture2D(uImage, vUv + vec2(x, 0.0)).rgb;
 
-            color = adjustContrast(color, uContrast);
-            color = color * uBrightness;
-            gl_FragColor = vec4(color, 1.0);
+                // 2. Calculate Local Contrast (Range)
+                vec3 minCol = min(m, min(n, min(s, min(e, w))));
+                vec3 maxCol = max(m, max(n, max(s, max(e, w))));
+                
+                // 3. Unsharp Mask Calculation
+                vec3 blur = (n + s + e + w) * 0.25;
+                vec3 diff = m - blur;
+                vec3 sharpened = m + diff * uSharpness;
+
+                // 4. SMART CLAMP (Anti-Ringing)
+                // This forces the sharpened pixel to stay within the range of its neighbors.
+                // It kills the "Halo" effect on text completely.
+                sharpened = clamp(sharpened, minCol, maxCol);
+                
+                // 5. High Contrast Protection (Optional Extra Safety)
+                // If the edge is already extreme (black on white), reduce sharpening intensity
+                float contrast = luma(maxCol - minCol);
+                float dampener = 1.0 - smoothstep(0.5, 1.0, contrast); // Reduce effect on very hard edges
+                m = mix(m, sharpened, dampener);
+            
+            } 
+
+            // 6. Global Adjustments
+            m = adjustContrast(m, uContrast);
+            m = m * uBrightness;
+            
+            gl_FragColor = vec4(m, 1.0);
         }
     </script>
 
     <script>
         const canvas = document.getElementById('glCanvas');
         const video = document.getElementById('sourceVid');
-        const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, alpha: false }); // Optimize
+        const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, alpha: false });
         
         const container = document.getElementById('player-container');
         const startBtn = document.getElementById('startBtn');
         const fsBtn = document.getElementById('fsBtn');
         const engineTag = document.getElementById('engineTag');
-        
         const modeToggle = document.getElementById('modeToggle');
         const sharpGroup = document.getElementById('sharpGroup');
         const volLabel = document.getElementById('volLabel');
-
-        let audioTrack = null;
-        let isFSREnabled = false; // Start with Zero Latency mode
-        let animationFrameId;
-
         const inputs = {
             vol: document.getElementById('vol'),
             sharp: document.getElementById('sharp'),
@@ -291,7 +242,11 @@
             bri: document.getElementById('bri')
         };
 
-        // --- WEBGL SETUP ---
+        let audioTrack = null;
+        let isSmartEnabled = false;
+        let animationFrameId;
+
+        // --- WEBGL INIT ---
         function createShader(gl, type, source) {
             const shader = gl.createShader(type);
             gl.shaderSource(shader, source);
@@ -335,87 +290,69 @@
 
         // --- ENGINE SWITCHING ---
         modeToggle.addEventListener('click', () => {
-            isFSREnabled = !isFSREnabled;
+            isSmartEnabled = !isSmartEnabled;
             
-            if (isFSREnabled) {
-                // Switch to WebGL
+            if (isSmartEnabled) {
                 modeToggle.classList.add('active');
                 modeToggle.querySelector('span:last-child').innerText = "ON";
                 sharpGroup.classList.remove('disabled');
-                
-                video.style.display = 'none'; // Hide raw video
-                canvas.style.display = 'block'; // Show Canvas
-                engineTag.innerText = "Engine: WebGL FSR (High Quality)";
+                video.style.display = 'none';
+                canvas.style.display = 'block';
+                engineTag.innerText = "Engine: Smart Anti-Ringing (High Quality)";
                 engineTag.style.color = "#e056fd";
-                
-                render(); // Start loop
+                render();
             } else {
-                // Switch to Native
                 modeToggle.classList.remove('active');
                 modeToggle.querySelector('span:last-child').innerText = "OFF";
                 sharpGroup.classList.add('disabled');
-                
-                canvas.style.display = 'none'; // Hide Canvas
-                video.style.display = 'block'; // Show raw video
+                canvas.style.display = 'none';
+                video.style.display = 'block';
                 engineTag.innerText = "Engine: Native Video (Zero Latency)";
                 engineTag.style.color = "#555";
-                
-                cancelAnimationFrame(animationFrameId); // Stop WebGL loop to save resources
-                
-                // Apply CSS filters to raw video so Contrast/Brightness still work!
+                cancelAnimationFrame(animationFrameId);
                 updateNativeFilters();
             }
         });
 
         function updateNativeFilters() {
-            if (!isFSREnabled) {
+            if (!isSmartEnabled) {
                 video.style.filter = `contrast(${inputs.con.value}) brightness(${inputs.bri.value})`;
             }
         }
 
-        // --- MAIN RENDER LOOP ---
         function render() {
-            if (!isFSREnabled) return; // Stop if we switched modes
-
+            if (!isSmartEnabled) return;
             if (video.readyState >= 2) {
                 gl.activeTexture(gl.TEXTURE0);
                 gl.bindTexture(gl.TEXTURE_2D, texture);
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
-                
                 gl.uniform2f(locs.res, canvas.width, canvas.height);
                 gl.uniform1f(locs.sharp, parseFloat(inputs.sharp.value));
                 gl.uniform1f(locs.con, parseFloat(inputs.con.value));
                 gl.uniform1f(locs.bri, parseFloat(inputs.bri.value));
-                
                 gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             }
             animationFrameId = requestAnimationFrame(render);
         }
 
-        // --- START ---
+        // --- STARTUP ---
         startBtn.addEventListener('click', async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 } },
                     audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, latency: 0 }
                 });
-
                 audioTrack = stream.getAudioTracks()[0];
                 video.srcObject = stream;
                 await video.play();
-
                 startBtn.style.display = 'none';
-                
-                // Initialize filters for Native mode (default)
                 updateNativeFilters();
-
             } catch (err) { alert("Error: " + err.message); }
         });
 
-        // --- CONTROLS ---
+        // --- INPUTS ---
         inputs.con.addEventListener('input', updateNativeFilters);
         inputs.bri.addEventListener('input', updateNativeFilters);
-
         inputs.vol.addEventListener('input', (e) => {
             const vol = parseFloat(e.target.value);
             video.volume = vol;
@@ -424,21 +361,17 @@
                 volLabel.style.color = "#ff4d4d";
                 if (audioTrack) audioTrack.enabled = false;
             } else {
-                volLabel.innerText = `Volume ${Math.round(vol * 100)}%`;
+                volLabel.innerText = `Vol ${Math.round(vol * 100)}%`;
                 volLabel.style.color = "#aaa";
                 if (audioTrack && !audioTrack.enabled) audioTrack.enabled = true;
             }
         });
 
         function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                container.requestFullscreen().catch(e => console.log(e));
-            } else {
-                document.exitFullscreen();
-            }
+            if (!document.fullscreenElement) container.requestFullscreen().catch(e => console.log(e));
+            else document.exitFullscreen();
         }
         fsBtn.addEventListener('click', toggleFullscreen);
-
     </script>
 </body>
 </html>
